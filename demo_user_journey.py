@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 User Journey Demo Runner
 Demonstrates real-world usage scenarios from USER_JOURNEY.md
