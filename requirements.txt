@@ -1,0 +1,36 @@
+
+# Core Dependencies
+python>=3.8
+
+# SSH and Remote Execution
+paramiko>=3.0.0
+
+# Configuration and Environment
+python-dotenv>=1.0.0
+pyyaml>=6.0
+
+# Async Support
+asyncio>=3.4.3
+aiofiles>=23.0.0
+
+# Logging and Monitoring
+structlog>=23.1.0
+colorama>=0.4.6
+
+# Type Checking
+typing-extensions>=4.5.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# Development
+black>=23.7.0
+flake8>=6.1.0
+mypy>=1.5.0
+
+# Optional: For advanced features
+# redis>=4.6.0  # For distributed state
+# boto3>=1.28.0  # For AWS integration
+# requests>=2.31.0  # For HTTP requests

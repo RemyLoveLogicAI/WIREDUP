@@ -1,0 +1,65 @@
+{
+  "env": "development",
+  "system": {
+    "name": "ai-autowire",
+    "version": "1.0.0",
+    "debug": true,
+    "log_level": "INFO"
+  },
+  "autowire": {
+    "auto_discovery": true,
+    "lazy_loading": false,
+    "circular_dependency_check": true
+  },
+  "mcp": {
+    "enabled": true,
+    "port": 3000,
+    "host": "localhost",
+    "session_timeout": 3600,
+    "max_message_size": 10485760
+  },
+  "ssh": {
+    "enabled": false,
+    "default_timeout": 30,
+    "max_connections": 10,
+    "connection_pool": {
+      "max_age": 3600,
+      "idle_timeout": 300,
+      "cleanup_interval": 60
+    }
+  },
+  "agents": {
+    "research_agent": {
+      "enabled": true,
+      "model": "gpt-4",
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "timeout": 30,
+      "skills": ["search", "summarize", "analyze"]
+    },
+    "execution_agent": {
+      "enabled": false,
+      "sandbox": true,
+      "allowed_commands": ["ls", "cat", "grep", "find"],
+      "timeout": 60
+    }
+  },
+  "skills": {
+    "auto_load": true,
+    "directories": ["skills", "custom_skills"],
+    "cache_enabled": true,
+    "cache_ttl": 3600
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "logs/autowire.log",
+    "max_bytes": 10485760,
+    "backup_count": 5
+  },
+  "security": {
+    "enable_sandboxing": true,
+    "allowed_hosts": ["localhost", "127.0.0.1"],
+    "max_request_size": 10485760
+  }
+}
