@@ -1,0 +1,11 @@
+[package.metadata.docs.rs]
+all-features = true
+
+# Workspace configuration
+[workspace]
+members = ["."]
+
+# Additional metadata
+[package.metadata.nexterm]
+python_autowire_path = "../src"
+default_shell = "/bin/bash"
