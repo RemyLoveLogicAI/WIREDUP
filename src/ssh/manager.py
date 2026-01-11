@@ -4,7 +4,10 @@ Advanced SSH connection pooling, key management, and secure execution.
 """
 
 import logging
-import paramiko
+try:
+    import paramiko
+except ImportError:
+    paramiko = None
 from typing import Any, Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -44,7 +47,7 @@ class SSHCredentials:
 class SSHConnection:
     """SSH connection wrapper"""
     credentials: SSHCredentials
-    client: paramiko.SSHClient
+    client: Any  # paramiko.SSHClient
     created_at: datetime = field(default_factory=datetime.now)
     last_used: datetime = field(default_factory=datetime.now)
     use_count: int = 0
@@ -201,6 +204,9 @@ class SSHConnectionPool:
     
     def _create_connection(self, credentials: SSHCredentials) -> SSHConnection:
         """Create a new SSH connection"""
+        if paramiko is None:
+            raise ImportError("paramiko is not installed. Please install it to use SSH features.")
+
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         

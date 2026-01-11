@@ -81,8 +81,10 @@ async fn initialize_autowire_system() -> Result<String> {
                     "-c",
                     r#"
 import sys
-sys.path.insert(0, '../src')
-from core.autowire import get_autowire
+import os
+# Add parent directory to path to allow importing src as a package
+sys.path.insert(0, os.path.abspath('..'))
+from src.core.autowire import get_autowire
 autowire = get_autowire()
 print(f"Auto-Wire initialized with {len(autowire.get_registry_info())} components")
                     "#

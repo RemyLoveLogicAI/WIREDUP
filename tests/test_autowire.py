@@ -74,8 +74,8 @@ class TestAutoWire:
             def __init__(self, service_a):
                 self.service_a = service_a
         
-        autowire.register('service_a', ServiceA)
-        autowire.register('service_b', ServiceB)
+        autowire.register('service_a', ServiceA, lazy=True)
+        autowire.register('service_b', ServiceB, lazy=True)
         
         with pytest.raises(CircularDependencyError):
             autowire.resolve('service_a')
