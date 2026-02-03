@@ -86,6 +86,8 @@ result = agent.execute("Analyze quantum computing trends")
 
 - [AGENT.md](./AGENT.md) - Comprehensive agent development guide
 - [SKILLS.md](./SKILLS.md) - Skills registry and capabilities matrix
+- [USER_JOURNEY.md](./USER_JOURNEY.md) - User journey guide with real-world scenarios
+- [TESTING_SUMMARY.md](./TESTING_SUMMARY.md) - Comprehensive testing documentation
 - [CONFIG.md](./docs/CONFIG.md) - Configuration system documentation
 - [MCP.md](./docs/MCP.md) - Model Context Protocol integration
 - [SSH.md](./docs/SSH.md) - SSH management and security
@@ -138,6 +140,29 @@ See the [examples](./examples) directory for complete examples:
 - `multi_agent.py` - Multi-agent orchestration
 - `mcp_integration.py` - MCP protocol usage
 - `ssh_deployment.py` - Remote deployment via SSH
+
+Or run the interactive demo:
+
+```bash
+python demo_user_journey.py
+```
+
+## 🧪 Testing
+
+Run the comprehensive test suite:
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run user journey tests
+pytest tests/test_user_journey.py -v
+
+# Run with coverage
+pytest tests/ --cov=src --cov-report=html
+```
+
+See [TESTING_SUMMARY.md](./TESTING_SUMMARY.md) for detailed testing documentation.
 
 ## 🤝 Contributing
 
