@@ -60,6 +60,18 @@ class AlwaysFailWorker(BaseAgent):
         raise RuntimeError("forced failure")
 
 
+class TraceWorker(BaseAgent):
+    """Exposes trace metadata from execution context."""
+
+    async def execute(self, task: str, context: AgentContext) -> Dict[str, Any]:
+        return {
+            "task": task,
+            "correlation_id": context.metadata.get("correlation_id"),
+            "operation_id": context.metadata.get("operation_id"),
+            "sub_operation_id": context.metadata.get("sub_operation_id"),
+        }
+
+
 @pytest.mark.asyncio
 async def test_parallel_swarm_executes_all_sub_agents():
     orchestrator = SwarmOrchestrator(
@@ -197,3 +209,54 @@ async def test_execute_mass_swarm_runs_multiple_operations():
     assert len(report["operations"]) == 4
     assert all(operation["total_agents"] == 3 for operation in report["operations"])
     assert len(context.state["swarm_history"]) == 4
+    assert report["metrics"]["event"] == "mass_swarm_operation"
+
+
+@pytest.mark.asyncio
+async def test_metrics_hook_emits_structured_observability_fields():
+    orchestrator = SwarmOrchestrator(
+        "orchestrator",
+        {
+            "sub_agent_timeout": 0.01,
+            "sub_agent_retries": 1,
+        },
+    )
+    orchestrator.add_sub_agents([EchoWorker("fast", delay=0.001), EchoWorker("slow", delay=0.03)])
+
+    emitted_metrics = []
+    orchestrator.register_metrics_hook(lambda metric: emitted_metrics.append(metric))
+
+    report = await orchestrator.execute_swarm(
+        "metrics-task",
+        AgentContext(session_id="metrics", metadata={"correlation_id": "corr-metrics"}),
+    )
+
+    metrics = report["metrics"]
+    assert report["operation_id"].startswith("swarm_")
+    assert report["correlation_id"] == "corr-metrics"
+    assert metrics["event"] == "swarm_operation"
+    assert metrics["operation_id"] == report["operation_id"]
+    assert metrics["correlation_id"] == report["correlation_id"]
+    assert metrics["timeout_count"] == 1
+    assert metrics["retries_used"] >= 1
+    assert metrics["sub_agent_duration_p95_ms"] >= 0
+    assert emitted_metrics[-1]["operation_id"] == report["operation_id"]
+
+
+@pytest.mark.asyncio
+async def test_trace_ids_propagate_into_sub_agent_context():
+    orchestrator = SwarmOrchestrator("orchestrator")
+    orchestrator.add_sub_agent(TraceWorker("trace_worker"))
+
+    report = await orchestrator.execute_swarm(
+        "trace-task",
+        AgentContext(session_id="trace", metadata={"correlation_id": "corr-trace"}),
+        operation_id="swarm_custom_op",
+    )
+
+    output = report["results"][0]["output"]
+    assert report["operation_id"] == "swarm_custom_op"
+    assert report["correlation_id"] == "corr-trace"
+    assert output["correlation_id"] == "corr-trace"
+    assert output["operation_id"] == "swarm_custom_op"
+    assert output["sub_operation_id"] == "swarm_custom_op:trace_worker"

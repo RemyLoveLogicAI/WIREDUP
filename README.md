@@ -58,6 +58,9 @@ python -m src.cli init
 
 # Start the auto-wiring system
 python -m src.cli start
+
+# Run swarm orchestration from JSON config
+python -m src.cli swarm-run --swarm-config config/swarm.json --output-format json
 ```
 
 ### Basic Usage
@@ -109,6 +112,17 @@ report = await orchestrator.execute_mass_swarm(
     context=context,
     parallel_tasks=True
 )
+```
+
+### Swarm Metrics Hooks
+
+```python
+metrics_events = []
+orchestrator.register_metrics_hook(lambda metrics: metrics_events.append(metrics))
+
+report = await orchestrator.execute_swarm("critical task", context)
+print(report["operation_id"], report["correlation_id"])
+print(report["metrics"]["sub_agent_duration_p95_ms"])
 ```
 
 ## 📚 Documentation
