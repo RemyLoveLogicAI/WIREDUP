@@ -58,6 +58,9 @@ python -m src.cli init
 
 # Start the auto-wiring system
 python -m src.cli start
+
+# Run swarm orchestration from JSON config
+python -m src.cli swarm-run --swarm-config config/swarm.json --output-format json
 ```
 
 ### Basic Usage
@@ -65,6 +68,7 @@ python -m src.cli start
 ```python
 from src.core.autowire import AutoWire
 from src.agents.base_agent import BaseAgent
+from src.agents import SwarmOrchestrator
 
 # Initialize auto-wiring system
 wire = AutoWire()
@@ -80,6 +84,45 @@ agent = wire.create_agent('research_agent', {
 
 # Execute with automatic dependency injection
 result = agent.execute("Analyze quantum computing trends")
+```
+
+### Mass Swarm Orchestration
+
+```python
+from src.agents import SwarmOrchestrator, SwarmStrategy
+from src.agents.base_agent import AgentContext
+
+orchestrator = SwarmOrchestrator(
+    "swarm_controller",
+    {
+        "strategy": SwarmStrategy.PARALLEL.value,
+        "max_concurrency": 16,
+        "sub_agent_timeout": 30,
+        "sub_agent_retries": 1
+    }
+)
+
+# Add many sub-agents
+for worker in workers:
+    orchestrator.add_sub_agent(worker)
+
+context = AgentContext(session_id="swarm_ops_001")
+report = await orchestrator.execute_mass_swarm(
+    tasks=["task-1", "task-2", "task-3"],
+    context=context,
+    parallel_tasks=True
+)
+```
+
+### Swarm Metrics Hooks
+
+```python
+metrics_events = []
+orchestrator.register_metrics_hook(lambda metrics: metrics_events.append(metrics))
+
+report = await orchestrator.execute_swarm("critical task", context)
+print(report["operation_id"], report["correlation_id"])
+print(report["metrics"]["sub_agent_duration_p95_ms"])
 ```
 
 ## 📚 Documentation

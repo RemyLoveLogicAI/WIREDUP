@@ -10,6 +10,7 @@ from src.core.autowire import AutoWire, Scope, inject, get_autowire
 from src.config import get_config_loader, get_config
 from src.mcp import MCPProtocol
 from src.ssh import SSHManager
+from src.agents import SyntheticWorkerAgent, SwarmOrchestrator, SwarmStrategy
 
 __all__ = [
     'AutoWire',
@@ -19,5 +20,8 @@ __all__ = [
     'get_config_loader',
     'get_config',
     'MCPProtocol',
-    'SSHManager'
+    'SSHManager',
+    'SyntheticWorkerAgent',
+    'SwarmOrchestrator',
+    'SwarmStrategy',
 ]

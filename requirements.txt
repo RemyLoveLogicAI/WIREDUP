@@ -1,6 +1,7 @@
 
 # Core Dependencies
 python>=3.8
+click>=8.3.1
 
 # SSH and Remote Execution
 paramiko>=3.0.0
