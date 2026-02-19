@@ -7,7 +7,7 @@ import asyncio
 import copy
 import logging
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from time import perf_counter
 from typing import Any, Dict, List, Optional, Sequence
@@ -126,7 +126,7 @@ class SwarmOrchestrator(BaseAgent):
             retries: Optional retries override
             fail_fast: Optional fail-fast override
         """
-        started_at = datetime.utcnow().isoformat()
+        started_at = datetime.now(timezone.utc).isoformat()
         operation_start = perf_counter()
 
         if not self._sub_agents:
@@ -211,7 +211,7 @@ class SwarmOrchestrator(BaseAgent):
         """
         Execute a batch of swarm operations (mass mode).
         """
-        started_at = datetime.utcnow().isoformat()
+        started_at = datetime.now(timezone.utc).isoformat()
         operation_start = perf_counter()
 
         task_list = list(tasks)
@@ -221,7 +221,7 @@ class SwarmOrchestrator(BaseAgent):
                 "agent": self.name,
                 "mode": "mass_swarm",
                 "started_at": started_at,
-                "finished_at": datetime.utcnow().isoformat(),
+                "finished_at": datetime.now(timezone.utc).isoformat(),
                 "duration_ms": 0,
                 "total_tasks": 0,
                 "successful_tasks": 0,
@@ -265,7 +265,7 @@ class SwarmOrchestrator(BaseAgent):
             "agent": self.name,
             "mode": "mass_swarm",
             "started_at": started_at,
-            "finished_at": datetime.utcnow().isoformat(),
+            "finished_at": datetime.now(timezone.utc).isoformat(),
             "duration_ms": int((perf_counter() - operation_start) * 1000),
             "total_tasks": len(task_list),
             "successful_tasks": successful_tasks,
@@ -458,7 +458,7 @@ class SwarmOrchestrator(BaseAgent):
             "task": task,
             "strategy": strategy.value,
             "started_at": started_at,
-            "finished_at": datetime.utcnow().isoformat(),
+            "finished_at": datetime.now(timezone.utc).isoformat(),
             "duration_ms": duration_ms,
             "total_agents": len(results),
             "successful_agents": successful_agents,
