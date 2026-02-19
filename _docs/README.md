@@ -1,73 +1,78 @@
-[Documentation Home](README.md)
+# 📚 WIREDUP Documentation
+
+Welcome to the complete documentation for this repository. This documentation is automatically generated and maintained by Woden Docbot.
+
+![Health: Healthy](https://img.shields.io/badge/Health-Healthy-green) ![Files Documented: 5](https://img.shields.io/badge/Files_Documented-5-blue) ![Coverage: 100](https://img.shields.io/badge/Coverage-100-green) ![Last Updated: 2026-02-19](https://img.shields.io/badge/Last_Updated-2026--02--19-gray)
+
+## 🔗 Quick Links
+
+[📂 examples](./examples/README.md) | [📂 src](./src/README.md) | [📂 tests](./tests/README.md)
+
 
 ---
 
-# 📁 _docs
+## 📑 Documentation Sections
 
-> **Purpose:** Holds documentation-facing source, example usage scripts, and tests that demonstrate and validate multi-agent / swarm orchestration behaviors for this project.
-> 
-
-![Organization: Hierarchical](https://img.shields.io/badge/Organization-Hierarchical-blue)
-
-## 📑 Table of Contents
+### [examples](./examples/README.md)
+Holds example scripts demonstrating usage patterns; currently contains a single example script for multi-agent behavior.
 
 
-- [Overview](#overview)
-- [Subdirectories](#subdirectories)
-- [Architecture Notes](#architecture-notes)
+This directory contains example code intended to demonstrate usage patterns for the project.
 
----
+![Files: 1](https://img.shields.io/badge/Files-1-blue)
 
-## Overview
-
-This directory groups the documentation-oriented source code, runnable example(s), and automated tests that together illustrate and validate multi-agent or swarm orchestration behavior. At the root there are no standalone documentation files; instead, content is organized into subdirectories. The src/ subdirectory contains the documentation-facing package code (including a root __init__.py) and references an agents package that provides swarm orchestration components. The examples/ subdirectory holds practical example scripts, currently a single multi_agent.py that demonstrates multi-agent behavior. The tests/ subdirectory contains automated tests, currently test_swarm_orchestrator.py, intended to validate the swarm orchestrator component.
-
-Collectively, these components provide a small documentation ecosystem: src/ contains the package-level documentation code and initialization, examples/ gives concrete usage patterns for developers to run and study, and tests/ offers validation and regression checks for the orchestrator behavior. This layout keeps runnable examples and tests adjacent to the documentation-facing source so developers can trace examples back to the package implementation and verify behavior using the included test(s).
+### [src](./src/README.md)
+Holds source-level documentation package code and package initialization for this part of the repository, and references an agents package containing swarm orchestration components.
 
 
-### File Organization
+This directory contains the code files that make up the documentation-facing source package.
 
-Contents are organized by role: src/ for the documentation package source and package initialization, examples/ for runnable demonstration scripts (multi_agent.py), and tests/ for automated tests (test_swarm_orchestrator.py). No files reside at the _docs root; the hierarchy groups related artifacts to make their intent explicit (implementation vs example vs test).
+![Files: 1](https://img.shields.io/badge/Files-1-blue)
 
-## 📂 Subdirectories
+### [tests](./tests/README.md)
+Contains test code for validating repository components; serves as the location for automated tests associated with this project.
 
-This directory contains the following subdirectories:
 
-### [📁 examples](./examples/README.md)
-
-**Purpose:** Holds example scripts demonstrating usage patterns; currently contains a single example script for multi-agent behavior.
+This directory contains the test files present at the root of the directory.
 
 ![Files: 1](https://img.shields.io/badge/Files-1-blue)
 
 ---
 
-### [📁 src](./src/README.md)
+## 📊 Documentation Statistics
 
-**Purpose:** Holds source-level documentation package code and package initialization for this part of the repository, and references an agents package containing swarm orchestration components.
-
-![Files: 1](https://img.shields.io/badge/Files-1-blue)
-
----
-
-### [📁 tests](./tests/README.md)
-
-**Purpose:** Contains test code for validating repository components; serves as the location for automated tests associated with this project.
-
-![Files: 1](https://img.shields.io/badge/Files-1-blue)
-
----
-## Architecture Notes
-
-- The directory intentionally separates documentation-facing source (src/), runnable examples (examples/), and automated tests (tests/) to keep concerns isolated and traceable.
-- The src/ package references an agents package that contains swarm orchestration components, indicating the documentation package surfaces or ties into orchestration functionality rather than reimplementing it.
+- **Files Documented**: 5
+- **Directories**: 5
+- **Coverage**: 100%
+- **Last Updated**: 2026-02-19
 
 ---
 
-## Navigation
+## 🧭 How to Navigate
 
-**↑ Parent Directory:** [Go up](../README.md)
-**🔗 Related:** [examples](./examples/README.md) • [src](./src/README.md) • [tests](./tests/README.md)
+> ℹ️ **INFO**
+> Each directory has its own README.md with detailed information about that section. Use the breadcrumb navigation at the top of each page to navigate back to parent directories.
+
+### Navigation Features
+
+- **Breadcrumbs** - At the top of each page, showing your current location
+- **Directory READMEs** - Each folder has a comprehensive overview
+- **File Documentation** - Click through to individual file documentation
+- **Search** - Use GitHub's search or your IDE's search functionality
 
 ---
 
-*Generated by Woden Docbot*
+## 🤖 About Woden DocBot
+
+This documentation is automatically generated and kept up-to-date by Woden DocBot, an AI-powered documentation assistant. DocBot analyzes code on every pull request and updates documentation to reflect changes.
+
+### Features
+
+- **Automatic Updates** - Documentation updates on every PR
+- **Comprehensive Coverage** - Files, functions, classes, and directories
+- **Smart Navigation** - Breadcrumbs, related files, and parent links
+- **AI-Powered** - Uses GPT-5-mini for intelligent documentation generation
+
+---
+
+*Generated by Woden DocBot for WIREDUP*
