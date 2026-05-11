@@ -2,12 +2,16 @@
 Command Line Interface for AI Auto-Wiring System
 """
 
+import asyncio
 import click
+import json
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
+from uuid import uuid4
 
+from src.agents import AgentContext, SwarmOrchestrator, SwarmStrategy, SyntheticWorkerAgent
 from src.core.autowire import get_autowire, Scope
 from src.config import get_config_loader, EnvManager
 from src.core.registry import ServiceRegistry, ComponentRegistry
@@ -19,6 +23,93 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def _deep_merge_dict(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    """Recursively merge override values into base dictionary."""
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge_dict(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _load_swarm_payload(swarm_config: Optional[str], swarm_json: Optional[str]) -> Dict[str, Any]:
+    """Load swarm payload from file and/or inline JSON."""
+    payload: Dict[str, Any] = {}
+
+    if swarm_config:
+        with open(swarm_config, "r", encoding="utf-8") as handle:
+            parsed = json.load(handle)
+        if not isinstance(parsed, dict):
+            raise ValueError("Swarm config file must contain a JSON object")
+        payload = _deep_merge_dict(payload, parsed)
+
+    if swarm_json:
+        parsed = json.loads(swarm_json)
+        if not isinstance(parsed, dict):
+            raise ValueError("Inline --swarm-json must be a JSON object")
+        payload = _deep_merge_dict(payload, parsed)
+
+    return payload
+
+
+def _parse_task_inputs(task_values: List[str], tasks_json: Optional[str], payload: Dict[str, Any]) -> List[str]:
+    """Resolve task list from CLI options and payload."""
+    tasks: List[str] = [task for task in task_values if task]
+
+    if tasks_json:
+        parsed = json.loads(tasks_json)
+        if not isinstance(parsed, list):
+            raise ValueError("--tasks-json must be a JSON array")
+        tasks.extend(str(item) for item in parsed)
+
+    if tasks:
+        return tasks
+
+    payload_tasks = payload.get("tasks")
+    if isinstance(payload_tasks, list) and payload_tasks:
+        return [str(item) for item in payload_tasks]
+
+    payload_task = payload.get("task")
+    if payload_task is not None:
+        return [str(payload_task)]
+
+    return []
+
+
+def _format_swarm_report(report: Dict[str, Any]) -> str:
+    """Render human-readable summary for swarm report."""
+    if report.get("mode") == "mass_swarm":
+        metrics = report.get("metrics", {})
+        lines = [
+            "✅ Mass swarm report",
+            f"   Operation ID: {report.get('operation_id')}",
+            f"   Correlation ID: {report.get('correlation_id')}",
+            f"   Success: {report.get('success')}",
+            f"   Tasks: {report.get('successful_tasks')}/{report.get('total_tasks')} successful",
+            f"   Duration: {report.get('duration_ms')} ms",
+            f"   p95 task duration: {metrics.get('operation_duration_p95_ms')} ms",
+            f"   Success rate: {metrics.get('success_rate')}",
+        ]
+        return "\n".join(lines)
+
+    metrics = report.get("metrics", {})
+    lines = [
+        "✅ Swarm report",
+        f"   Operation ID: {report.get('operation_id')}",
+        f"   Correlation ID: {report.get('correlation_id')}",
+        f"   Success: {report.get('success')}",
+        f"   Agents: {report.get('successful_agents')}/{report.get('total_agents')} successful",
+        f"   Duration: {report.get('duration_ms')} ms",
+        f"   p95 sub-agent duration: {metrics.get('sub_agent_duration_p95_ms')} ms",
+        f"   Timeouts: {metrics.get('timeout_count')}",
+        f"   Retries used: {metrics.get('retries_used')}",
+        f"   Success rate: {metrics.get('success_rate')}",
+    ]
+    return "\n".join(lines)
 
 
 @click.group()
@@ -297,6 +388,195 @@ def ssh_exec(host: str, username: str, key_file: Optional[str], command: str):
     
     except Exception as e:
         click.echo(f"❌ SSH execution failed: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command('swarm-run')
+@click.option('--swarm-config', type=click.Path(exists=True, dir_okay=False), help='Swarm JSON config file path')
+@click.option('--swarm-json', help='Inline swarm JSON payload')
+@click.option('--task', 'tasks', multiple=True, help='Task string (repeat for multiple tasks)')
+@click.option('--tasks-json', help='JSON array of task strings')
+@click.option('--context-json', help='JSON object to override runtime context')
+@click.option('--target-agent', 'target_agents', multiple=True, help='Target specific sub-agent(s)')
+@click.option('--correlation-id', help='Trace correlation ID')
+@click.option('--strategy', type=click.Choice(['parallel', 'sequential']), help='Execution strategy override')
+@click.option('--max-concurrency', type=int, help='Override max sub-agent concurrency')
+@click.option('--retries', type=int, help='Override sub-agent retries')
+@click.option('--timeout', type=float, help='Override sub-agent timeout in seconds')
+@click.option('--fail-fast', 'fail_fast', flag_value=True, default=None, help='Enable fail-fast')
+@click.option('--no-fail-fast', 'fail_fast', flag_value=False, help='Disable fail-fast')
+@click.option('--parallel-tasks', 'parallel_tasks', flag_value=True, default=None, help='Run mass tasks in parallel')
+@click.option('--sequential-tasks', 'parallel_tasks', flag_value=False, help='Run mass tasks sequentially')
+@click.option('--output-format', type=click.Choice(['table', 'json']), default='table', help='Output display format')
+@click.option('--report-output', type=click.Path(dir_okay=False), help='Write full report JSON file')
+@click.option('--metrics-output', type=click.Path(dir_okay=False), help='Write emitted metrics JSON file')
+def swarm_run(
+    swarm_config: Optional[str],
+    swarm_json: Optional[str],
+    tasks: List[str],
+    tasks_json: Optional[str],
+    context_json: Optional[str],
+    target_agents: List[str],
+    correlation_id: Optional[str],
+    strategy: Optional[str],
+    max_concurrency: Optional[int],
+    retries: Optional[int],
+    timeout: Optional[float],
+    fail_fast: Optional[bool],
+    parallel_tasks: Optional[bool],
+    output_format: str,
+    report_output: Optional[str],
+    metrics_output: Optional[str],
+):
+    """Run swarm orchestration from config/JSON input."""
+    click.echo("🐝 Running swarm orchestration")
+
+    try:
+        payload = _load_swarm_payload(swarm_config=swarm_config, swarm_json=swarm_json)
+        orchestrator_config = payload.get("orchestrator", {})
+        if not isinstance(orchestrator_config, dict):
+            raise ValueError("'orchestrator' must be a JSON object")
+        orchestrator_config = dict(orchestrator_config)
+
+        if strategy:
+            orchestrator_config["strategy"] = strategy
+        if max_concurrency is not None:
+            orchestrator_config["max_concurrency"] = max_concurrency
+        if retries is not None:
+            orchestrator_config["sub_agent_retries"] = retries
+        if timeout is not None:
+            orchestrator_config["sub_agent_timeout"] = timeout
+        if fail_fast is not None:
+            orchestrator_config["fail_fast"] = fail_fast
+
+        orchestrator_name = str(orchestrator_config.pop("name", "swarm_cli_orchestrator"))
+        orchestrator = SwarmOrchestrator(orchestrator_name, orchestrator_config)
+
+        metrics_events: List[Dict[str, Any]] = []
+        orchestrator.register_metrics_hook(lambda metric: metrics_events.append(metric))
+
+        agent_specs = payload.get("agents", [])
+        if not isinstance(agent_specs, list) or not agent_specs:
+            raise ValueError("No agents configured. Provide 'agents' as a non-empty list")
+
+        for index, spec in enumerate(agent_specs):
+            if not isinstance(spec, dict):
+                raise ValueError(f"Agent spec at index {index} must be a JSON object")
+            name = spec.get("name")
+            if not name:
+                raise ValueError(f"Agent spec at index {index} is missing required field 'name'")
+
+            worker_config = dict(spec)
+            worker_config.pop("name", None)
+            orchestrator.add_sub_agent(SyntheticWorkerAgent(str(name), worker_config))
+
+        context_payload = payload.get("context", {})
+        if context_payload is None:
+            context_payload = {}
+        if not isinstance(context_payload, dict):
+            raise ValueError("'context' must be a JSON object")
+
+        if context_json:
+            context_override = json.loads(context_json)
+            if not isinstance(context_override, dict):
+                raise ValueError("--context-json must be a JSON object")
+            context_payload = _deep_merge_dict(context_payload, context_override)
+
+        metadata = context_payload.get("metadata", {})
+        if metadata is None:
+            metadata = {}
+        if not isinstance(metadata, dict):
+            raise ValueError("'context.metadata' must be a JSON object")
+        metadata = dict(metadata)
+        if correlation_id:
+            metadata["correlation_id"] = correlation_id
+
+        context_state = context_payload.get("state", {})
+        if context_state is None:
+            context_state = {}
+        if not isinstance(context_state, dict):
+            raise ValueError("'context.state' must be a JSON object")
+
+        context = AgentContext(
+            session_id=str(context_payload.get("session_id") or f"swarm_cli_{uuid4().hex[:10]}"),
+            user_id=context_payload.get("user_id"),
+            metadata=metadata,
+            state=dict(context_state),
+        )
+
+        resolved_tasks = _parse_task_inputs(list(tasks), tasks_json, payload)
+        if not resolved_tasks:
+            raise ValueError("No tasks provided. Use --task, --tasks-json, or payload task(s)")
+
+        resolved_targets: Optional[List[str]] = None
+        if target_agents:
+            resolved_targets = [str(name) for name in target_agents]
+        elif isinstance(payload.get("target_agents"), list):
+            resolved_targets = [str(name) for name in payload["target_agents"]]
+
+        sub_tasks = payload.get("sub_tasks")
+        if sub_tasks is not None and not isinstance(sub_tasks, dict):
+            raise ValueError("'sub_tasks' must be a JSON object")
+        resolved_sub_tasks = (
+            {str(key): str(value) for key, value in sub_tasks.items()}
+            if isinstance(sub_tasks, dict)
+            else None
+        )
+
+        run_kwargs: Dict[str, Any] = {
+            "target_agents": resolved_targets,
+            "strategy": SwarmStrategy(strategy) if strategy else None,
+            "max_concurrency": max_concurrency,
+            "timeout": timeout,
+            "retries": retries,
+            "fail_fast": fail_fast,
+            "correlation_id": metadata.get("correlation_id"),
+        }
+        run_kwargs = {key: value for key, value in run_kwargs.items() if value is not None}
+
+        if len(resolved_tasks) == 1:
+            if resolved_sub_tasks is not None:
+                run_kwargs["sub_tasks"] = resolved_sub_tasks
+            report = asyncio.run(
+                orchestrator.execute_swarm(
+                    task=resolved_tasks[0],
+                    context=context,
+                    **run_kwargs,
+                )
+            )
+        else:
+            payload_parallel = payload.get("parallel_tasks", True)
+            resolved_parallel_tasks = bool(payload_parallel if parallel_tasks is None else parallel_tasks)
+            report = asyncio.run(
+                orchestrator.execute_mass_swarm(
+                    tasks=resolved_tasks,
+                    context=context,
+                    parallel_tasks=resolved_parallel_tasks,
+                    **run_kwargs,
+                )
+            )
+
+        if output_format == 'json':
+            click.echo(json.dumps(report, indent=2, default=str))
+        else:
+            click.echo(_format_swarm_report(report))
+
+        if report_output:
+            report_path = Path(report_output)
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(report_path, "w", encoding="utf-8") as handle:
+                json.dump(report, handle, indent=2, default=str)
+            click.echo(f"📝 Report written to {report_path}")
+
+        if metrics_output:
+            metrics_path = Path(metrics_output)
+            metrics_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(metrics_path, "w", encoding="utf-8") as handle:
+                json.dump(metrics_events, handle, indent=2, default=str)
+            click.echo(f"📈 Metrics written to {metrics_path}")
+
+    except Exception as e:
+        click.echo(f"❌ Swarm run failed: {e}", err=True)
         sys.exit(1)
 
 

@@ -16,6 +16,7 @@ from src.core.autowire import AutoWire, Scope
 from src.config import EnvManager
 from src.mcp import MCPProtocol, MCPRole, MCPMessageType
 from src.agents.base_agent import BaseAgent, AgentContext
+from src.agents import SwarmOrchestrator, SwarmStrategy
 
 
 # Configure logging
@@ -194,12 +195,19 @@ async def demo_4_multi_agent():
     research_agent = DemoResearchAgent('researcher', {'specialty': 'research'})
     analysis_agent = DemoAnalysisAgent('analyzer', {'specialty': 'analysis'})
     
-    # Create coordinator
-    coordinator = DemoCoordinator('coordinator')
-    coordinator.add_agent(research_agent)
-    coordinator.add_agent(analysis_agent)
+    # Create production swarm orchestrator
+    coordinator = SwarmOrchestrator(
+        'coordinator',
+        {
+            'strategy': SwarmStrategy.PARALLEL.value,
+            'max_concurrency': 4,
+            'sub_agent_timeout': 10,
+            'sub_agent_retries': 1,
+        }
+    )
+    coordinator.add_sub_agents([research_agent, analysis_agent])
     
-    print(f"✅ Coordinator created with {len(coordinator.agents)} sub-agents")
+    print(f"✅ Coordinator created with {len(coordinator.list_sub_agents())} sub-agents")
     
     # Execute coordinated workflow
     context = AgentContext(
@@ -208,7 +216,7 @@ async def demo_4_multi_agent():
         state={}
     )
     
-    result = await coordinator.execute("Analyze blockchain technology", context)
+    result = await coordinator.execute_swarm("Analyze blockchain technology", context)
     
     print(f"✅ Coordination: {result['summary']}")
     print(f"✅ Results from {len(result['sub_results'])} agents:")
